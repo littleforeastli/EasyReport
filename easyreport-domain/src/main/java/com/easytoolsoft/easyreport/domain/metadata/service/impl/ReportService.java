@@ -5,7 +5,6 @@ import com.easytoolsoft.easyreport.data.common.helper.PageInfo;
 import com.easytoolsoft.easyreport.data.common.service.AbstractCrudService;
 import com.easytoolsoft.easyreport.data.metadata.dao.IReportDao;
 import com.easytoolsoft.easyreport.data.metadata.example.ReportExample;
-import com.easytoolsoft.easyreport.data.metadata.po.Category;
 import com.easytoolsoft.easyreport.data.metadata.po.DataSource;
 import com.easytoolsoft.easyreport.data.metadata.po.Report;
 import com.easytoolsoft.easyreport.data.metadata.po.ReportOptions;
@@ -48,23 +47,19 @@ public class ReportService
 
     @Override
     public int add(Report po) {
-        Category category = this.categoryService.getById(po.getCategoryId());
         po.setUid(UUID.randomUUID().toString());
         this.dao.insert(po);
         po = Report.builder()
                 .id(po.getId())
-                .path(category.getPath() + "|" + po.getId())
                 .build();
         this.dao.updateById(po);
         return po.getId();
     }
 
     @Override
-    public List<Report> getByPage(PageInfo page, Integer categoryId, String fieldName, String keyword) {
+    public List<Report> getByPage(PageInfo page, String fieldName, Integer categoryId) {
         ReportExample example = new ReportExample();
-        example.or()
-                .andCategoryIdEqualTo(categoryId)
-                .andFieldLike(fieldName, keyword);
+        example.or().andOperand(fieldName, "=", categoryId);
         return this.getByPage(page, example);
     }
 
@@ -161,7 +156,7 @@ public class ReportService
                 ds.getDriverClass(),
                 ds.getJdbcUrl(), ds.getUser(), ds.getPassword(),
                 ds.getQueryerClass(),
-                ds.getDbPoolClass(),
+                ds.getPoolClass(),
                 options);
     }
 }

@@ -135,6 +135,9 @@ var EasyUIUtils = {
             }
         });
     },
+    loadDataWithUrl: function (gridId, href) {
+        $(gridId).datagrid({url: href});
+    },
     loadToDatagrid: function (id, href) {
         var grid = $(id);
         $.getJSON(href, function (data) {
@@ -188,17 +191,60 @@ var EasyUIUtils = {
             showType: 'slide'
         });
     },
-    resortDatagrid: function (index, type, grid) {
-        var maxIndex = grid.datagrid('getRows').length - 1;
+    /**
+     * 移动datagrid行
+     * @param gridId grid元素id
+     * @param type 取值只能为:'up'(上移) or 'down'(下移)
+     */
+    move: function (gridId, type) {
+        var $grid = $(gridId);
+        var row = $grid.datagrid('getSelected');
+        var index = $grid.datagrid('getRowIndex', row);
+        EasyUIUtils.resort(index, type, $grid);
+    },
+    /**
+     * 选中datagrid的行
+     * @param gridId grid元素id
+     * @param indexId 当前grid选中的行号所在的元素id
+     * @param type 取值只能为:'prev'(上一条) or 'next'(下一条)
+     * @param fn 回调函数
+     */
+    cursor: function (gridId, indexId, type, fn) {
+        var index = parseInt($(indexId).val()) - 1;
+        if (type === 'next') {
+            index = parseInt($(indexId).val()) + 1;
+        }
+
+        $(gridId).datagrid('selectRow', index);
+        var row = $(gridId).datagrid('getSelected');
+        if (row) {
+            $(indexId).val(index);
+            if (fn instanceof Function) {
+                fn(row);
+            }
+            return;
+        }
+
+        if (type === 'next') {
+            $(gridId).datagrid('selectRow', index - 1);
+            return $.messager.alert('失败', '当前已到最后一条记录', 'error');
+        }
+        $(gridId).datagrid('selectRow', index + 1);
+        return $.messager.alert('失败', '当前已到第一条记录!', 'error');
+    },
+    //
+    //datagrid行重排序
+    resort: function (index, type, $grid) {
+        var maxIndex = $grid.datagrid('getRows').length - 1;
         var moveIndex = ("up" == type) ? index - 1 : index + 1;
         if (moveIndex >= 0 && moveIndex <= maxIndex) {
-            var currRow = grid.datagrid('getData').rows[index];
-            var moveRow = grid.datagrid('getData').rows[moveIndex];
-            grid.datagrid('getData').rows[index] = moveRow;
-            grid.datagrid('getData').rows[moveIndex] = currRow;
-            grid.datagrid('refreshRow', index);
-            grid.datagrid('refreshRow', moveIndex);
-            grid.datagrid('selectRow', moveIndex);
+            var currRow = $grid.datagrid('getData').rows[index];
+            var moveRow = $grid.datagrid('getData').rows[moveIndex];
+            $grid.datagrid('getData').rows[index] = moveRow;
+            $grid.datagrid('getData').rows[moveIndex] = currRow;
+            $grid.datagrid('refreshRow', index);
+            $grid.datagrid('refreshRow', moveIndex);
+            $grid.datagrid('selectRow', moveIndex);
         }
     },
     closeCurrentTab: function (id) {

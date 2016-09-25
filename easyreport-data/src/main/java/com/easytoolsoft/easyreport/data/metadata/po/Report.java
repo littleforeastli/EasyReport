@@ -59,10 +59,6 @@ public class Report implements Serializable {
      */
     private String options;
     /**
-     * 报表树型结构路径
-     */
-    private String path;
-    /**
      * 报表状态（1表示锁定，0表示编辑)
      */
     private Integer status;
@@ -86,4 +82,12 @@ public class Report implements Serializable {
      * 记录修改时间
      */
     private Date gmtModified;
+    /**
+     * 报表分类名称
+     */
+    private String categoryName;
+    /**
+     * 报表数据源名称
+     */
+    private String dsName;
 }

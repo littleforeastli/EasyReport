@@ -1,5 +1,6 @@
 package com.easytoolsoft.easyreport.membership.service;
 
+import com.easytoolsoft.easyreport.common.tree.EasyUITreeNode;
 import com.easytoolsoft.easyreport.data.membership.po.Module;
 import com.easytoolsoft.easyreport.data.membership.po.User;
 import org.apache.commons.lang3.ArrayUtils;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * 用户权限服务外观类
@@ -32,6 +34,10 @@ public class MembershipFacade {
 
     public void loadCache() {
         permissionService.reloadCache();
+    }
+
+    public List<EasyUITreeNode<Module>> getModuleTree(List<Module> modules, Predicate<Module> predicate) {
+        return this.moduleService.getModuleTree(modules, predicate);
     }
 
     public User getUser(String account) {
@@ -65,10 +71,11 @@ public class MembershipFacade {
 
         Map<String, String> permissionMap = permissionService.getIdCodeMap();
         String[] permissionIdSplit = StringUtils.split(permissionIds, ',');
-        Set<String> permSet = new HashSet<>(permissionIdSplit.length);
+        Set<String> permSet = new HashSet<>();
         for (String permId : permissionIdSplit) {
-            if (!permSet.contains(permId.trim())) {
-                permSet.add(permissionMap.get(permId.trim()));
+            String perm = permissionMap.get(StringUtils.trim(permId));
+            if (StringUtils.isNotBlank(perm)) {
+                permSet.add(perm);
             }
         }
         return permSet;

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service("EzrptSysConfService")
@@ -23,6 +24,13 @@ public class ConfService
         ConfExample example = new ConfExample();
         example.createCriteria().andFieldLike(fieldName, keyword);
         return example;
+    }
+
+    @Override
+    public List<Conf> getByPage(PageInfo pageInfo, Integer pid) {
+        ConfExample example = new ConfExample();
+        example.or().andParentIdEqualTo(pid);
+        return this.getByPage(pageInfo, example);
     }
 
     @Override
@@ -46,12 +54,12 @@ public class ConfService
                 .get();
 
         List<Conf> subItems = items.stream()
-                .filter(x -> x.getParentId() == parentItem.getId())
+                .filter(x -> Objects.equals(x.getParentId(), parentItem.getId()))
                 .collect(Collectors.toList());
 
         for (Conf subItem : subItems) {
             itemMap.put(subItem.getKey(), items.stream()
-                    .filter(x -> x.getParentId() == subItem.getId())
+                    .filter(x -> Objects.equals(x.getParentId(), subItem.getId()))
                     .collect(Collectors.toList()));
         }
 

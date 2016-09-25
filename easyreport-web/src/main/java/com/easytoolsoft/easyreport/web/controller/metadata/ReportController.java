@@ -21,6 +21,7 @@ import com.easytoolsoft.easyreport.web.viewmodel.DataGridPager;
 import com.easytoolsoft.easyreport.web.viewmodel.JsonResult;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -52,9 +53,22 @@ public class ReportController
 
     @GetMapping(value = "/list")
     @OpLog(name = "分页获取报表列表")
-    public Map<String, Object> list(DataGridPager pager, Integer categoryId, String fieldName, String keyword) {
-        PageInfo pageInfo = pager.toPageInfo();
-        List<Report> list = this.service.getByPage(pageInfo, categoryId, fieldName, keyword);
+    @RequiresPermissions("report.designer:view")
+    public Map<String, Object> list(DataGridPager pager, Integer id) {
+        PageInfo pageInfo = this.getPageInfo(pager);
+        List<Report> list = this.service.getByPage(pageInfo, "t1.category_id", id == null ? 0 : id);
+        Map<String, Object> modelMap = new HashMap<>(2);
+        modelMap.put("total", pageInfo.getTotals());
+        modelMap.put("rows", list);
+        return modelMap;
+    }
+
+    @GetMapping(value = "/find")
+    @OpLog(name = "分页查询报表")
+    @RequiresPermissions("report.designer:view")
+    public Map<String, Object> find(DataGridPager pager, String fieldName, String keyword) {
+        PageInfo pageInfo = this.getPageInfo(pager);
+        List<Report> list = this.service.getByPage(pageInfo, "t1." + fieldName, "%" + keyword + "%");
         Map<String, Object> modelMap = new HashMap<>(2);
         modelMap.put("total", pageInfo.getTotals());
         modelMap.put("rows", list);
@@ -63,6 +77,7 @@ public class ReportController
 
     @GetMapping(value = "/getAll")
     @OpLog(name = "获取所有报表")
+    @RequiresPermissions("report.designer:view")
     public List<IdNamePair> getAll(@CurrentUser User loginUser) {
         List<Report> reportList = this.service.getAll();
         if (CollectionUtils.isEmpty(reportList)) {
@@ -78,6 +93,7 @@ public class ReportController
 
     @PostMapping(value = "/add")
     @OpLog(name = "新增报表")
+    @RequiresPermissions("report.designer:add")
     public JsonResult add(Report po) {
         JsonResult<String> result = new JsonResult<>();
         po.setCreateUser("");
@@ -92,6 +108,7 @@ public class ReportController
 
     @PostMapping(value = "/edit")
     @OpLog(name = "修改报表")
+    @RequiresPermissions("report.designer:edit")
     public JsonResult edit(Report po, Boolean isChange) {
         JsonResult result = new JsonResult<>();
         this.service.editById(po);
@@ -107,16 +124,18 @@ public class ReportController
 
     @PostMapping(value = "/remove")
     @OpLog(name = "删除报表")
+    @RequiresPermissions("report.designer:remove")
     public JsonResult remove(Integer id) {
         JsonResult result = new JsonResult<>();
         this.service.removeById(id);
         return result;
     }
 
-    @PostMapping(value = "/loadSqlColumns")
+    @PostMapping(value = "/execSqlText")
     @OpLog(name = "获取报表元数据列集合")
-    public JsonResult loadSqlColumns(Integer dsId, String sqlText, Integer dataRange,
-                                     String queryParams, HttpServletRequest request) {
+    @RequiresPermissions("report.designer:view")
+    public JsonResult execSqlText(Integer dsId, String sqlText, Integer dataRange,
+                                  String queryParams, HttpServletRequest request) {
         JsonResult<List<ReportMetaDataColumn>> result = new JsonResult<>();
         if (dsId == null) {
             return result;
@@ -126,10 +145,11 @@ public class ReportController
         return result;
     }
 
-    @GetMapping(value = "/viewSqlText")
-    @OpLog(name = "查看报表SQL语句")
-    public JsonResult viewSqlText(Integer dsId, String sqlText, Integer dataRange, String queryParams,
-                                  HttpServletRequest request) {
+    @GetMapping(value = "/previewSqlText")
+    @OpLog(name = "预览报表SQL语句")
+    @RequiresPermissions("report.designer:view")
+    public JsonResult previewSqlText(Integer dsId, String sqlText, Integer dataRange, String queryParams,
+                                     HttpServletRequest request) {
         JsonResult<String> result = new JsonResult<>();
         if (dsId == null) return result;
         if (dataRange == null) dataRange = 7;
@@ -139,23 +159,16 @@ public class ReportController
         return result;
     }
 
-    @GetMapping(value = "/getSqlColumn")
+    @GetMapping(value = "/getSqlColumnScheme")
     @OpLog(name = "获取报表元数据列结构")
-    public ReportMetaDataColumn getSqlColumn() {
-        ReportMetaDataColumn sqlColumnPo = new ReportMetaDataColumn();
-        sqlColumnPo.setName("expr");
-        sqlColumnPo.setType(4);
-        sqlColumnPo.setDataType("DECIMAL");
-        sqlColumnPo.setWidth(42);
-        return sqlColumnPo;
-    }
-
-    @PostMapping(value = "/saveQueryParam")
-    @OpLog(name = "保存报表查询参数")
-    public JsonResult saveQueryParam(Integer id, String queryParams) {
-        JsonResult<String> result = new JsonResult<>();
-        this.service.editById(Report.builder().id(id).queryParams(queryParams).build());
-        return result;
+    @RequiresPermissions("report.designer:view")
+    public ReportMetaDataColumn getSqlColumnScheme() {
+        ReportMetaDataColumn column = new ReportMetaDataColumn();
+        column.setName("expr");
+        column.setType(4);
+        column.setDataType("DECIMAL");
+        column.setWidth(42);
+        return column;
     }
 
     private String getSqlText(String sqlText, Integer dataRange, String queryParams, HttpServletRequest request) {
@@ -170,5 +183,13 @@ public class ReportController
                     });
         }
         return VelocityUtils.parse(sqlText, formParameters);
+    }
+
+    private PageInfo getPageInfo(DataGridPager pager) {
+        PageInfo pageInfo = pager.toPageInfo("t1.");
+        if ("dsName".equals(pager.getSort())) {
+            pageInfo.setSortItem("t1.ds_id");
+        }
+        return pageInfo;
     }
 }
