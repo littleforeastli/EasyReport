@@ -111,7 +111,7 @@ var EasyUIUtils = {
         }
 
         if (options.gridId && options.gridUrl) {
-            options.callback = function () {
+            options.callback = function (data) {
                 EasyUIUtils.loadToDatagrid(options.gridId, options.gridUrl);
             };
         }
@@ -121,10 +121,10 @@ var EasyUIUtils = {
                 return $(this).form('validate');
             },
             success: function (data) {
-                var result = $.parseJSON(data)
+                var result = $.toJSON(data);
                 if (result.success) {
                     EasyUIUtils.showMsg(result.msg || "操作成功");
-                    options.callback();
+                    options.callback(result.data);
                     $(options.dlgId).dialog('close');
                 } else {
                     $.messager.show({
@@ -137,6 +137,15 @@ var EasyUIUtils = {
     },
     loadDataWithUrl: function (gridId, href) {
         $(gridId).datagrid({url: href});
+    },
+    loadDataWithCallback: function (id, href, fn) {
+        var grid = $(id);
+        $.getJSON(href, function (data) {
+            grid.datagrid('loadData', data);
+            if (fn instanceof Function) {
+                fn();
+            }
+        });
     },
     loadToDatagrid: function (id, href) {
         var grid = $(id);
@@ -168,12 +177,6 @@ var EasyUIUtils = {
             total: 0,
             rows: []
         };
-    },
-    parseJSON: function (json) {
-        if (json == null || json == "") {
-            return {};
-        }
-        return $.parseJSON(json);
     },
     showMsg: function (msg) {
         $.messager.show({
@@ -246,6 +249,40 @@ var EasyUIUtils = {
             $grid.datagrid('refreshRow', moveIndex);
             $grid.datagrid('selectRow', moveIndex);
         }
+    },
+    fillCombox: function (id, act, list, defaultValue) {
+        $(id).combobox('clear');
+        for (var i = 0; i < list.length; i++) {
+            var item = list[i];
+            item["selected"] = (i == 0);
+        }
+        $(id).combobox('loadData', list);
+        if (act == "edit") {
+            $(id).combobox('setValue', defaultValue);
+        }
+    },
+    toPropertygridRows: function (options) {
+        var rows = [];
+        for (var key in options) {
+            rows.push({
+                "name": key,
+                "value": options[key],
+                "editor": "text"
+            });
+        }
+
+        return {
+            "total": rows.length,
+            "rows": rows
+        };
+    },
+    toPropertygridMap: function (rows) {
+        var options = {};
+        for (var i = 0; i < rows.length; i++) {
+            var row = rows[i];
+            options[row.name] = row.value;
+        }
+        return options;
     },
     closeCurrentTab: function (id) {
         var tab = $(id).tabs('getSelected');

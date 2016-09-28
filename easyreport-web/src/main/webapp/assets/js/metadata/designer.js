@@ -1,71 +1,91 @@
 $(function () {
-    MetaDataReport.init();
+    MetaDataDesigner.init();
 });
 
-var MetaDataReport = {
+var MetaDataDesigner = {
     init: function () {
-        ReportMVC.View.initControl();
-        ReportMVC.View.initSqlEditorDivHeight();
-        ReportMVC.View.initSqlEditor();
-        ReportMVC.View.initHistorySqlEditor();
-        ReportMVC.View.bindEvent();
-        ReportMVC.View.bindValidate();
+        DesignerMVC.View.initControl();
+        DesignerMVC.View.resizeDesignerElments();
+        DesignerMVC.View.initSqlEditor();
+        DesignerMVC.View.initHistorySqlEditor();
+        DesignerMVC.View.initPreviewSqlEditor();
+        DesignerMVC.View.bindEvent();
+        DesignerMVC.View.bindValidate();
+        DesignerMVC.View.initData();
     },
     listReports: function (category) {
-        ReportMVC.Controller.listReports(category.id);
+        DesignerMVC.Controller.listReports(category.id);
     },
     addReport: function () {
-        ReportMVC.Controller.add();
+        DesignerMVC.Controller.add();
+    },
+    showMetaColumnOption: function (index, name) {
+        DesignerMVC.Controller.showMetaColumnOption(index, name);
+    },
+    deleteQueryParam: function (index) {
+        DesignerMVC.Controller.deleteQueryParam(index);
     }
-}
-
-var ReportCommon = {
-    baseUrl: EasyReport.ctxPath + '/rest/metadata/report/',
-    baseHistoryUrl: EasyReport.ctxPath + '/rest/metadata/history/',
-    baseIconUrl: EasyReport.ctxPath + '/assets/custom/easyui/themes/icons/'
 };
 
-var ReportMVC = {
+var DesignerCommon = {
+    baseUrl: EasyReport.ctxPath + '/rest/metadata/report/',
+    baseHistoryUrl: EasyReport.ctxPath + '/rest/metadata/history/',
+    baseDsUrl: EasyReport.ctxPath + '/rest/metadata/ds/',
+    baseIconUrl: EasyReport.ctxPath + '/assets/custom/easyui/themes/icons/',
+    baseReportUrl: EasyReport.ctxPath + '/report/'
+};
+
+var DesignerMVC = {
     URLs: {
         add: {
-            url: ReportCommon.baseUrl + 'add',
+            url: DesignerCommon.baseUrl + 'add',
             method: 'POST'
         },
         edit: {
-            url: ReportCommon.baseUrl + 'edit',
+            url: DesignerCommon.baseUrl + 'edit',
             method: 'POST'
         },
         list: {
-            url: ReportCommon.baseUrl + 'list',
+            url: DesignerCommon.baseUrl + 'list',
             method: 'GET'
         },
         find: {
-            url: ReportCommon.baseUrl + 'find',
+            url: DesignerCommon.baseUrl + 'find',
             method: 'GET'
         },
         remove: {
-            url: ReportCommon.baseUrl + 'remove',
+            url: DesignerCommon.baseUrl + 'remove',
             method: 'POST'
         },
         historyList: {
-            url: ReportCommon.baseHistoryUrl + 'list',
+            url: DesignerCommon.baseHistoryUrl + 'list',
             method: 'GET'
         },
         execSqlText: {
-            url: ReportCommon.baseUrl + 'execSqlText',
+            url: DesignerCommon.baseUrl + 'execSqlText',
             method: 'POST'
         },
         previewSqlText: {
-            url: ReportCommon.baseUrl + 'previewSqlText',
+            url: DesignerCommon.baseUrl + 'previewSqlText',
             method: 'POST'
         },
-        getSqlColumnScheme: {
-            url: ReportCommon.baseUrl + 'getSqlColumnScheme',
+        getMetaColumnScheme: {
+            url: DesignerCommon.baseUrl + 'getMetaColumnScheme',
+            method: 'GET'
+        },
+        DataSource: {
+            listAll: {
+                url: DesignerCommon.baseDsUrl + 'listAll',
+                method: 'GET'
+            }
+        },
+        Report: {
+            url: DesignerCommon.baseReportUrl + 'uid/',
             method: 'GET'
         }
     },
     Model: {
-        SqlColumnOptions: [{
+        MetaColumnOptions: [{
             name: "optional",
             text: "可选",
             type: 1
@@ -93,12 +113,13 @@ var ReportMVC = {
             name: "comment",
             text: "备注",
             type: 2
-        }, {
-            name: "format",
-            text: "格式",
-            type: 2
-        }],
-        SqlColumnTypes: [{
+        }
+            /*, {
+             name: "format",
+             text: "格式",
+             type: 2
+             }*/],
+        MetaColumnTypes: [{
             text: "布局列",
             value: 1
         }, {
@@ -111,7 +132,7 @@ var ReportMVC = {
             text: "计算列",
             value: 4
         }],
-        SqlColumnSortTypes: [{
+        MetaColumnSortTypes: [{
             text: "默认",
             value: 0
         }, {
@@ -126,10 +147,12 @@ var ReportMVC = {
         }, {
             text: "字符优先降序",
             value: 4
-        }]
+        }],
+        DataSourceList: []
     },
     View: {
         SqlEditor: null,
+        PreviewSqlEditor: null,
         HistorySqlEditor: null,
         initControl: function () {
             $('#report-datagrid').datagrid({
@@ -141,34 +164,35 @@ var ReportMVC = {
                 fitColumns: true,
                 singleSelect: true,
                 toolbar: [{
+                    text: '详细信息',
                     iconCls: 'icon-info',
                     handler: function () {
-                        ReportMVC.Controller.showDetail();
+                        DesignerMVC.Controller.showDetail();
                     }
                 }, '-', {
                     text: '增加',
                     iconCls: 'icon-add',
-                    handler: ReportMVC.Controller.add
+                    handler: DesignerMVC.Controller.add
                 }, '-', {
                     text: '修改',
                     iconCls: 'icon-edit1',
-                    handler: ReportMVC.Controller.edit
+                    handler: DesignerMVC.Controller.edit
                 }, '-', {
                     text: '复制',
                     iconCls: 'icon-copy',
-                    handler: ReportMVC.Controller.copy
+                    handler: DesignerMVC.Controller.copy
                 }, '-', {
                     text: '预览',
                     iconCls: 'icon-preview',
-                    handler: ReportMVC.Controller.preview
+                    handler: DesignerMVC.Controller.preview
                 }, '-', {
                     text: '版本',
                     iconCls: 'icon-history',
-                    handler: ReportMVC.Controller.showHistorySql
+                    handler: DesignerMVC.Controller.showHistorySql
                 }, '-', {
                     text: '删除',
                     iconCls: 'icon-remove',
-                    handler: ReportMVC.Controller.remove
+                    handler: DesignerMVC.Controller.remove
                 }],
                 loadFilter: function (src) {
                     if (src.success) {
@@ -185,7 +209,7 @@ var ReportMVC = {
                 }, {
                     field: 'name',
                     title: '名称',
-                    width: 100,
+                    width: 150,
                     sortable: true
                 }, {
                     field: 'dsName',
@@ -247,13 +271,13 @@ var ReportMVC = {
                         var buttons = [];
                         for (var i = 0; i < icons.length; i++) {
                             var tmpl = '<a href="#" title ="${title}" ' +
-                                'onclick="ReportMVC.Controller.doOption(\'${index}\',\'${name}\')">' +
+                                'onclick="DesignerMVC.Controller.doOption(\'${index}\',\'${name}\')">' +
                                 '<img src="${imgSrc}" alt="${title}"/"></a>';
                             var data = {
                                 title: icons[i].title,
                                 name: icons[i].name,
                                 index: index,
-                                imgSrc: ReportCommon.baseIconUrl + icons[i].name + ".png"
+                                imgSrc: DesignerCommon.baseIconUrl + icons[i].name + ".png"
                             };
                             buttons.push(juicer(tmpl, data));
                         }
@@ -261,11 +285,51 @@ var ReportMVC = {
                     }
                 }]],
                 onDblClickRow: function (rowIndex, rowData) {
-                    return ReportMVC.Controller.preview();
+                    return DesignerMVC.Controller.preview();
+                },
+                onRowContextMenu: function (e, index, row) {
+                    e.preventDefault();
+                    $('#report-datagrid-ctx-menu').menu('show', {
+                        left: e.pageX,
+                        top: e.pageY
+                    });
                 }
             });
 
-            $('#report-sql-column-grid').datagrid({
+            $('#report-datagrid-ctx-menu').menu({
+                onClick: function (item) {
+                    if (item.name == "preview") {
+                        return DesignerMVC.Controller.preview();
+                    }
+                    if (item.name == "window") {
+                        return DesignerMVC.Controller.previewInNewWindow();
+                    }
+                    if (item.name == "add") {
+                        return DesignerMVC.Controller.add();
+                    }
+                    if (item.name == "edit") {
+                        return DesignerMVC.Controller.edit();
+                    }
+                    if (item.name == "remove") {
+                        return DesignerMVC.Controller.remove();
+                    }
+                    if (item.name == "copy") {
+                        return DesignerMVC.Controller.copy();
+                    }
+                    if (item.name == "info") {
+                        return DesignerMVC.Controller.showDetail();
+                    }
+                    if (item.name == "history") {
+                        return DesignerMVC.Controller.showHistorySql();
+                    }
+                    if (item.name == "refresh") {
+                        return DesignerMVC.Controller.reload();
+                    }
+                    return;
+                }
+            });
+
+            $('#report-meta-column-grid').datagrid({
                 method: 'post',
                 fit: true,
                 fitColumns: true,
@@ -274,43 +338,44 @@ var ReportMVC = {
                 tools: [{
                     iconCls: 'icon-up',
                     handler: function () {
-                        EasyUIUtils.move("#report-sql-column-grid", 'up');
+                        EasyUIUtils.move("#report-meta-column-grid", 'up');
                     }
                 }, '-', {
                     iconCls: 'icon-down',
                     handler: function () {
-                        EasyUIUtils.move("#report-sql-column-grid", 'down');
+                        EasyUIUtils.move("#report-meta-column-grid", 'down');
                     }
                 }, '-', {
                     iconCls: 'icon-add',
                     handler: function () {
                         var index = 1;
-                        var rows = $("#report-sql-column-grid").datagrid('getRows');
+                        var rows = $("#report-meta-column-grid").datagrid('getRows');
                         if (rows && rows.length) {
                             for (var i = 0; i < rows.length; i++) {
                                 var type = $("#type" + i).val();
                                 if (type == 4) index++;
                             }
                         }
-                        $.getJSON(ReportMVC.URLs.getSqlColumnScheme.url, function (result) {
+                        $.getJSON(DesignerMVC.URLs.getMetaColumnScheme.url, function (result) {
                             if (result.success) {
+                                var row = result.data;
                                 row.name = row.name + index;
                                 row.text = row.name;
                                 row.type = 4;
                                 row.sortType = 0;
-                                $('#report-sql-column-grid').datagrid('appendRow', row);
+                                $('#report-meta-column-grid').datagrid('appendRow', row);
                             }
                         });
                     }
                 }, '-', {
                     iconCls: 'icon-cancel',
                     handler: function () {
-                        var row = $("#report-sql-column-grid").datagrid('getSelected');
+                        var row = $("#report-meta-column-grid").datagrid('getSelected');
                         if (row) {
-                            var index = $("#report-sql-column-grid").datagrid('getRowIndex', row);
-                            $("#report-sql-column-grid").datagrid('deleteRow', index);
-                            var rows = $("#report-sql-column-grid").datagrid('getRows');
-                            $("#report-sql-column-grid").datagrid('loadData', rows);
+                            var index = $("#report-meta-column-grid").datagrid('getRowIndex', row);
+                            $("#report-meta-column-grid").datagrid('deleteRow', index);
+                            var rows = $("#report-meta-column-grid").datagrid('getRows');
+                            $("#report-meta-column-grid").datagrid('loadData', rows);
                         }
                     }
                 }],
@@ -321,7 +386,7 @@ var ReportMVC = {
                     formatter: function (value, row, index) {
                         var id = "name" + index;
                         var tmpl = '<input style="width:98%;" type="text" id="${id}" name="name" value="${value}" />';
-                        return template.compile(tmpl)({
+                        return juicer(tmpl, {
                             id: id,
                             value: row.name
                         });
@@ -333,7 +398,7 @@ var ReportMVC = {
                     formatter: function (value, row, index) {
                         var id = "text" + index;
                         var tmpl = '<input style="width:98%;" type="text" id="${id}" name="text" value="${value}" />';
-                        return template.compile(tmpl)({
+                        return juicer(tmpl, {
                             id: id,
                             value: row.text
                         });
@@ -344,16 +409,16 @@ var ReportMVC = {
                     width: 75,
                     formatter: function (value, row, index) {
                         var id = "type" + index;
-                        var tmpl = '\
-								<select id="${id}" name=\"type\">\
-								${each list}\
-									<option value="${$value.value}" ${if $value.value == currValue}selected${/if}>${$value.text}</option>\
-								${/each}\
-								</select>';
-                        return template.compile(tmpl)({
+                        var tmpl =
+                            '<select id="${id}" name=\"type\">' +
+                            '{@each list as item}' +
+                            '<option value="${item.value}" {@if item.value == currValue} selected {@/if}>${item.text}</option>' +
+                            '{@/each}' +
+                            '</select>';
+                        return juicer(tmpl, {
                             id: id,
                             currValue: value,
-                            list: ReportMVC.Model.SqlColumnTypes
+                            list: DesignerMVC.Model.MetaColumnTypes
                         });
                     }
                 }, {
@@ -374,7 +439,7 @@ var ReportMVC = {
                             row.decimals = 0;
                         }
                         var tmpl = '<input style="width:42px;" type="text" id="${id}" name="decimals" value="${value}" />';
-                        return template.compile(tmpl)({
+                        return juicer(tmpl, {
                             id: id,
                             value: row.decimals
                         });
@@ -385,16 +450,16 @@ var ReportMVC = {
                     width: 100,
                     formatter: function (value, row, index) {
                         var id = "sortType" + index;
-                        var tmpl = '\
-								<select id="${id}" name=\"sortType\">\
-								${each list}\
-									<option value="${$value.value}" ${if $value.value == currValue}selected${/if}>${$value.text}</option>\
-								${/each}\
-								</select>';
-                        return template.compile(tmpl)({
+                        var tmpl =
+                            '<select id="${id}" name=\"sortType\">' +
+                            '{@each list as item}' +
+                            '<option value="${item.value}" {@if item.value == currValue} selected {@/if}>${item.text}</option>' +
+                            '{@/each}' +
+                            '</select>';
+                        return juicer(tmpl, {
                             id: id,
                             currValue: value,
-                            list: ReportMVC.Model.SqlColumnSortTypes
+                            list: DesignerMVC.Model.MetaColumnSortTypes
                         });
                     }
                 }, {
@@ -405,15 +470,15 @@ var ReportMVC = {
                         var subOptions = [];
                         // 4:计算列,3:统计列,2:维度列,1:布局列
                         if (row.type == 4) {
-                            subOptions = $.grep(ReportMVC.Model.SqlColumnOptions, function (option, i) {
+                            subOptions = $.grep(DesignerMVC.Model.MetaColumnOptions, function (option, i) {
                                 return option.type == 1 || option.type == 2 || option.type == 4;
                             });
                         } else if (row.type == 3) {
-                            subOptions = $.grep(ReportMVC.Model.SqlColumnOptions, function (option, i) {
+                            subOptions = $.grep(DesignerMVC.Model.MetaColumnOptions, function (option, i) {
                                 return option.type == 1 || option.type == 2;
                             });
                         } else {
-                            subOptions = $.grep(ReportMVC.Model.SqlColumnOptions, function (option, i) {
+                            subOptions = $.grep(DesignerMVC.Model.MetaColumnOptions, function (option, i) {
                                 return option.type == 2 || option.type == 3;
                             });
                         }
@@ -431,13 +496,13 @@ var ReportMVC = {
                             };
                             var tmpl = "";
                             if (name == "expression" || name == "comment" || name == "format") {
-                                data.imgSrc = ReportCommon.baseIconUrl + name + ".png";
-                                data.onClick = "ReportDesigner.showSqlColumnGridOptionDialog('" + index + "','" + name + "')";
+                                data.imgSrc = DesignerCommon.baseIconUrl + name + ".png";
+                                data.onClick = "MetaDataDesigner.showMetaColumnOption('" + index + "','" + name + "')";
                                 tmpl = '<img style="cursor: pointer;" id="${id}" title="${text}" src="${imgSrc}" onclick="${onClick}" />';
                             } else {
                                 tmpl = '<input type="checkbox" id="${id}" name="${name}" ${checked}>${text}</input>'
                             }
-                            htmlOptions.push(template.compile(tmpl)(data));
+                            htmlOptions.push(juicer(tmpl, data));
                         }
                         return htmlOptions.join(" ");
                     }
@@ -514,18 +579,18 @@ var ReportMVC = {
                     title: '操作',
                     width: 50,
                     formatter: function (value, row, index) {
-                        var imgPath = ReportCommon.baseIconUrl + 'remove.png';
+                        var imgPath = DesignerCommon.baseIconUrl + 'remove.png';
                         var tmpl = '<a href="#" title ="删除" ' +
-                            'onclick="ReportDesigner.deleteQueryParam(\'${index}\')"><img src="${imgPath}" ' +
+                            'onclick="MetaDataDesigner.deleteQueryParam(\'${index}\')"><img src="${imgPath}" ' +
                             'alt="删除"/"></a>';
-                        return template.compile(tmpl)({
+                        return juicer(tmpl, {
                             index: index,
                             imgPath: imgPath
                         });
                     }
                 }]],
                 onDblClickRow: function (index, row) {
-                    $('#report-query-param-form').autofill(row);
+                    $('#report-query-param-form').form('load', row);
                     $("#report-query-param-required").prop("checked", row.required);
                     $("#report-query-param-autoComplete").prop("checked", row.autoComplete);
                     $("#report-query-param-gridIndex").val(index);
@@ -553,7 +618,7 @@ var ReportMVC = {
                 }, {
                     field: 'author',
                     title: '作者',
-                    width: 80
+                    width: 100
                 }]],
                 loadFilter: function (src) {
                     if (src.success) {
@@ -563,8 +628,19 @@ var ReportMVC = {
                     return EasyUIUtils.getEmptyDatagridRows();
                 },
                 onClickRow: function (index, row) {
-                    ReportMVC.View.HistorySqlEditor.setValue(row.sqlText || "");
+                    DesignerMVC.Controller.showHistorySqlDetail(row);
+                },
+                onSelect: function (index, row) {
+                    DesignerMVC.Controller.showHistorySqlDetail(row);
                 }
+            });
+
+            $('#report-history-sql-pgrid').propertygrid({
+                scrollbarSize: 0,
+                columns: [[
+                    {field: 'name', title: '属性项', width: 80, sortable: true},
+                    {field: 'value', title: '属性值', width: 300, resizable: false}
+                ]]
             });
 
             $('#report-designer-dlg').dialog({
@@ -575,11 +651,11 @@ var ReportMVC = {
                 maximizable: true,
                 minimizable: true,
                 maximized: true,
-                iconCls: 'icon-add',
+                iconCls: 'icon-designer',
                 buttons: [{
                     text: '编辑器放大/缩小',
                     iconCls: 'icon-fullscreen',
-                    handler: ReportMVC.Controller.fullscreenEdit
+                    handler: DesignerMVC.Util.fullscreenEdit
                 }, {
                     text: '关闭',
                     iconCls: 'icon-no',
@@ -589,10 +665,10 @@ var ReportMVC = {
                 }, {
                     text: '保存',
                     iconCls: 'icon-save',
-                    handler: ReportMVC.Controller.save
+                    handler: DesignerMVC.Controller.save
                 }],
                 onResize: function (width, height) {
-                    ReportMVC.Util.resizeSqlEditor();
+                    DesignerMVC.Util.resizeDesignerDlgElments();
                 }
             });
 
@@ -615,8 +691,8 @@ var ReportMVC = {
             $('#report-detail-dlg').dialog({
                 closed: true,
                 modal: true,
-                width: window.screen.width - 550,
-                height: window.screen.height - 450,
+                width: window.screen.width - 350,
+                height: window.screen.height - 350,
                 maximizable: true,
                 iconCls: 'icon-info',
                 buttons: [{
@@ -626,7 +702,7 @@ var ReportMVC = {
                         EasyUIUtils.cursor('#report-datagrid',
                             '#current-row-index',
                             'prev', function (row) {
-                                ReportMVC.Controller.preview(row);
+                                DesignerMVC.Controller.showDetail(row);
                             });
                     }
                 }, {
@@ -636,7 +712,7 @@ var ReportMVC = {
                         EasyUIUtils.cursor('#report-datagrid',
                             '#current-row-index',
                             'next', function (row) {
-                                ReportMVC.Controller.preview(row);
+                                DesignerMVC.Controller.showDetail(row);
                             });
                     }
                 }, {
@@ -647,23 +723,85 @@ var ReportMVC = {
                     }
                 }]
             });
-        },
-        initSqlEditorDivHeight: function () {
-            var paramDivHeight = (window.screen.height - 720);
-            paramDivHeight = paramDivHeight <= 180 ? 180 : paramDivHeight;
-            var sqlhistoryDivHeight = window.screen.height - 420 - 205;
-            sqlhistoryDivHeight = sqlhistoryDivHeight <= 180 ? 180 : sqlhistoryDivHeight;
 
-            $('#report-sql-column-grid-div').css({
-                "height": paramDivHeight
+            $('#report-preview-sql-dlg').dialog({
+                closed: true,
+                modal: true,
+                maximizable: true,
+                iconCls: 'icon-sql',
+                width: window.screen.width - 350,
+                height: window.screen.height - 350,
+                buttons: [{
+                    text: '关闭',
+                    iconCls: 'icon-no',
+                    handler: function () {
+                        $("#report-preview-sql-dlg").dialog('close');
+                    }
+                }]
             });
-            $('#report-history-sql-grid-div').css({
-                "height": sqlhistoryDivHeight
+
+            $('#report-column-expression-dlg').dialog({
+                closed: true,
+                modal: true,
+                iconCls: 'icon-formula',
+                top: (screen.height - 500) / 2,
+                left: (screen.width - 300) / 2,
+                width: 500,
+                height: 310,
+                buttons: [{
+                    text: '关闭',
+                    iconCls: 'icon-no',
+                    handler: function () {
+                        $("#report-column-expression-dlg").dialog('close');
+                    }
+                }, {
+                    text: '保存',
+                    iconCls: 'icon-save',
+                    handler: function () {
+                        DesignerMVC.Controller.saveMetaColumnOption('expression');
+                    }
+                }]
             });
+
+            $('#report-column-comment-dlg').dialog({
+                closed: true,
+                modal: true,
+                iconCls: 'icon-comment',
+                top: (screen.height - 500) / 2,
+                left: (screen.width - 300) / 2,
+                width: 500,
+                height: 310,
+                buttons: [{
+                    text: '关闭',
+                    iconCls: 'icon-no',
+                    handler: function () {
+                        $("#report-column-comment-dlg").dialog('close');
+                    }
+                }, {
+                    text: '保存',
+                    iconCls: 'icon-save',
+                    handler: function () {
+                        DesignerMVC.Controller.saveMetaColumnOption('comment');
+                    }
+                }]
+            });
+
+            $('#report-query-param-formElement').combobox({
+                onSelect: function (rec) {
+                    var value = "sql";
+                    if (rec.value == "text") {
+                        value = 'none';
+                    }
+                    $('#report-query-param-dataSource').combobox('setValue', value);
+                }
+            });
+        },
+        resizeDesignerElments: function () {
+            DesignerMVC.Util.resizeDesignerDlgElments();
         },
         initSqlEditor: function () {
             var dom = document.getElementById("report-sqlText");
-            ReportMVC.View.SqlEditor = CodeMirror.fromTextArea(dom, {
+            DesignerMVC.View.SqlEditor = CodeMirror.fromTextArea(dom, {
                 mode: 'text/x-mysql',
                 theme: 'rubyblue',
                 indentWithTabs: true,
@@ -684,7 +822,7 @@ var ReportMVC = {
                     "Tab": "autocomplete"
                 }
             });
-            ReportMVC.View.SqlEditor.on("change", function (cm, obj) {
+            DesignerMVC.View.SqlEditor.on("change", function (cm, obj) {
                 if (obj.origin == "setValue") {
                     $('#report-sqlTextIsChange').val(0);
                 } else {
@@ -694,7 +832,7 @@ var ReportMVC = {
         },
         initHistorySqlEditor: function () {
             var dom = document.getElementById("report-history-sqlText");
-            ReportMVC.View.HistorySqlEditor = CodeMirror.fromTextArea(dom, {
+            DesignerMVC.View.HistorySqlEditor = CodeMirror.fromTextArea(dom, {
                 mode: 'text/x-mysql',
                 theme: 'rubyblue',
                 indentWithTabs: true,
@@ -714,177 +852,325 @@ var ReportMVC = {
                 }
             });
         },
+        initPreviewSqlEditor: function () {
+            var dom = document.getElementById("report-preview-sqlText");
+            DesignerMVC.View.PreviewSqlEditor = CodeMirror.fromTextArea(dom, {
+                mode: 'text/x-mysql',
+                theme: 'rubyblue',
+                indentWithTabs: true,
+                smartIndent: true,
+                lineNumbers: true,
+                matchBrackets: true,
+                autofocus: true
+            });
+        },
         bindEvent: function () {
-            $('#btn-report-search').bind('click', ReportMVC.Controller.find);
-            $('#btn-report-exec-sql').bind('click', ReportMVC.Controller.find);
-            $('#btn-report-preview-sql').bind('click', ReportMVC.Controller.find);
-            $('#btn-report-query-param-add').bind('click', ReportMVC.Controller.find);
-            $('#btn-report-query-param-edit').bind('click', ReportMVC.Controller.find);
+            $('#btn-report-search').bind('click', DesignerMVC.Controller.find);
+            $('#btn-report-exec-sql').bind('click', DesignerMVC.Controller.executeSql);
+            $('#btn-report-preview-sql').bind('click', DesignerMVC.Controller.previewSql);
+            $('#btn-report-query-param-add').bind('click', function (e) {
+                DesignerMVC.Controller.addOrEditQueryParam('add');
+            });
+            $('#btn-report-query-param-edit').bind('click', function (e) {
+                DesignerMVC.Controller.addOrEditQueryParam('edit');
+            });
         },
         bindValidate: function () {
+        },
+        initData: function () {
+            DesignerMVC.Data.loadDataSourceList();
         }
     },
     Controller: {
         doOption: function (index, name) {
             $('#report-datagrid').datagrid('selectRow', index);
             if (name == "info") {
-                return ReportMVC.Controller.showDetail();
+                return DesignerMVC.Controller.showDetail();
             }
             if (name == "edit") {
-                return ReportMVC.Controller.edit();
+                return DesignerMVC.Controller.edit();
             }
             if (name == "copy") {
-                return ReportMVC.Controller.copy();
+                return DesignerMVC.Controller.copy();
             }
             if (name == "preview") {
-                return ReportMVC.Controller.preview();
+                return DesignerMVC.Controller.preview();
             }
             if (name == "remove") {
-                return ReportMVC.Controller.remove();
+                return DesignerMVC.Controller.remove();
             }
             if (name == "history") {
-                return ReportMVC.Controller.showHistorySql();
+                return DesignerMVC.Controller.showHistorySql();
             }
         },
         add: function () {
             var node = $('#category-tree').tree('getSelected');
             if (node) {
+                var dsId = $('#report-dsId').combobox('getValue');
                 var category = node.attributes;
-                var options = ReportMVC.Util.getOptions();
+                var options = DesignerMVC.Util.getOptions();
                 options.title = '报表设计器--新增报表';
                 EasyUIUtils.openAddDlg(options);
-                ReportMVC.Util.clearSqlEditor();
-                EasyUIUtils.clearDatagrid('#report-sql-column-grid');
-
-                $('#report-category-name').text(category.name);
-                $('#report-categoryId').text(category.id);
+                DesignerMVC.Util.clearSqlEditor();
+                EasyUIUtils.clearDatagrid('#report-meta-column-grid');
+                var row = {
+                    name: "",
+                    categoryId: category.id,
+                    dsId: dsId,
+                    status: 1,
+                    sequence: 10,
+                    options: {
+                        layout: 2,
+                        statColumnLayout: 1,
+                        dataRange: 7
+                    }
+                };
+                DesignerMVC.Util.fillReportBasicConfForm(row, row.options);
             } else {
                 $.messager.alert('警告', '请选中一个报表分类!', 'info');
             }
         },
         edit: function () {
-            var row = $('#report-datagrid').datagrid('getSelected');
-            if (row) {
-                var options = ReportMVC.Util.getOptions();
-                options.iconCls = 'icon-edit1';
+            DesignerMVC.Util.checkSelected(function (row) {
+                var options = DesignerMVC.Util.getOptions();
+                options.iconCls = 'icon-designer';
                 options.data = row;
                 options.title = '报表设计器--修改[' + options.data.name + ']报表';
-
-                ReportMVC.Util.clearSqlEditor();
-                EasyUIUtils.openEditDlg(options);
-                ReportMVC.Controller.loadParams(row.params)
-                ReportMVC.View.SqlEditor.setValue(row.sqlText || "");
-            } else {
-                $.messager.alert('警告', '请选中一条记录!', 'info');
-            }
+                DesignerMVC.Util.editOrCopy(options, 'edit');
+            });
+        },
+        copy: function () {
+            DesignerMVC.Util.checkSelected(function (row) {
+                var options = DesignerMVC.Util.getOptions();
+                options.iconCls = 'icon-designer';
+                options.data = row;
+                options.title = '报表设计器--复制[' + options.data.name + ']报表';
+                DesignerMVC.Util.editOrCopy(options, 'copy');
+                $('#modal-action').val("add");
+            });
         },
         remove: function () {
-            var row = $('#report-datagrid').datagrid('getSelected');
-            if (row) {
+            DesignerMVC.Util.checkSelected(function (row) {
                 var options = {
                     rows: [row],
-                    url: ReportMVC.URLs.remove.url,
+                    url: DesignerMVC.URLs.remove.url,
                     data: {
                         id: row.id
                     },
-                    gridId: '##report-datagrid',
-                    gridUrl: ReportMVC.URLs.list.url,
+                    gridId: '#report-datagrid',
+                    gridUrl: DesignerMVC.URLs.list.url + '?id=' + row.categoryId,
                     callback: function (rows) {
                     }
                 };
                 EasyUIUtils.remove(options);
-            } else {
-                $.messager.alert('警告', '请选中一条记录!', 'info');
-            }
+            });
         },
-        copy: function () {
-            var row = $('#report-datagrid').datagrid('getSelected');
-            if (row) {
-                var options = ReportMVC.Util.getOptions();
-                options.iconCls = 'icon-copy';
-                options.data = row;
-                options.title = '报表设计器--复制[' + options.data.name + ']报表';
-
-                ReportMVC.Util.clearSqlEditor();
-                EasyUIUtils.openEditDlg(options);
-                $('#modal-action').val("add");
-                $('#report-name').textbox('setValue', '');
-                ReportMVC.Controller.loadParams(row.params)
-                ReportMVC.View.SqlEditor.setValue(row.sqlText || "");
-            } else {
-                $.messager.alert('警告', '请选中一条记录!', 'info');
-            }
+        preview: function () {
+            DesignerMVC.Util.checkSelected(function (row) {
+                var url = DesignerMVC.URLs.Report.url + row.uid;
+                parent.HomeIndex.addTab(row.id, row.name, url, "");
+                parent.HomeIndex.selectedTab();
+            });
         },
-        preview: function (row) {
-
+        previewInNewWindow: function () {
+            DesignerMVC.Util.checkSelected(function (row) {
+                var url = DesignerMVC.URLs.Report.url + row.uid;
+                var win = window.open(url, '_blank');
+                win.focus();
+            });
         },
         showDetail: function () {
-            var row = $('#report-datagrid').datagrid('getSelected');
-            if (row) {
+            DesignerMVC.Util.checkSelected(function (row) {
                 $('#report-detail-dlg').dialog('open').dialog('center');
-                ReportMVC.Util.showReportProps(row);
-            } else {
-                $.messager.alert('警告', '请选中一条记录!', 'info');
-            }
+                DesignerMVC.Util.showReportProps(row);
+            });
         },
         showHistorySql: function () {
-            var row = $('#report-datagrid').datagrid('getSelected');
-            if (row) {
+            DesignerMVC.Util.checkSelected(function (row) {
                 $('#report-history-sql-dlg').dialog('open').dialog('center');
-                ReportMVC.View.HistorySqlEditor.setValue('');
-                ReportMVC.View.HistorySqlEditor.refresh();
-                var url = ReportMVC.URLs.historyList.url + 'list?reportId=' + row.id;
-                EasyUIUtils.loadToDatagrid('#report-history-sql-grid', url)
-            } else {
-                $.messager.alert('警告', '请选中一条记录!', 'info');
-            }
+                DesignerMVC.View.HistorySqlEditor.setValue('');
+                DesignerMVC.View.HistorySqlEditor.refresh();
+                var url = DesignerMVC.URLs.historyList.url + '?reportId=' + row.id;
+                EasyUIUtils.loadDataWithCallback('#report-history-sql-grid', url, function () {
+                    $('#report-history-sql-grid').datagrid('selectRow', 0);
+                });
+            });
+        },
+        showHistorySqlDetail: function (row) {
+            DesignerMVC.View.HistorySqlEditor.setValue(row.sqlText || "");
+            var data = EasyUIUtils.toPropertygridRows(row);
+            $('#report-history-sql-pgrid').propertygrid('loadData', data);
         },
         find: function () {
             var keyword = $("#report-search-keyword").val();
-            var url = ReportMVC.URLs.find.url + '?fieldName=name&keyword=' + keyword;
+            var url = DesignerMVC.URLs.find.url + '?fieldName=name&keyword=' + keyword;
             EasyUIUtils.loadToDatagrid('#report-datagrid', url)
         },
-        save: function () {
-            var action = $('#modal-action').val();
-            var actUrl = action === "edit" ? ReportMVC.URLs.edit.url : ReportMVC.URLs.add.url;
-            var options = {
-                dlgId: "#report-designer-dlg",
-                formId: "#report-basic-conf-form",
-                url: actUrl,
-                callback: function () {
-                    var id = $("#report-categoryId").val();
-                    ReportMVC.Controller.listReports(id);
-                }
-            };
-            EasyUIUtils.save(options);
+        executeSql: function () {
+            if (!DesignerMVC.Util.checkBasicConfParam()) return;
 
-            //$('#report-params').val(JSON.stringify(ReportMVC.Controller.getParams()));
+            $.messager.progress({
+                title: '请稍后...',
+                text: '正在执行中...'
+            });
+
+            $.post(DesignerMVC.URLs.execSqlText.url, {
+                sqlText: DesignerMVC.View.SqlEditor.getValue(),
+                dsId: $('#report-dsId').combobox('getValue'),
+                dataRange: $('#report-dataRange').val(),
+                queryParams: DesignerMVC.Util.getQueryParams()
+            }, function (result) {
+                $.messager.progress("close");
+                if (result.success) {
+                    $("#report-meta-column-grid").datagrid('clearChecked');
+                    var columns = DesignerMVC.Util.eachMetaColumns(result.data);
+                    return DesignerMVC.Util.loadMetaColumns(columns);
+                }
+                return $.messager.alert('错误', result.msg);
+            }, 'json');
+        },
+        previewSql: function () {
+            if (!DesignerMVC.Util.checkBasicConfParam()) return;
+
+            $.messager.progress({
+                title: '请稍后...',
+                text: '正在生成预览SQL...',
+            });
+
+            $.post(DesignerMVC.URLs.previewSqlText.url, {
+                dsId: $('#report-dsId').combobox('getValue'),
+                sqlText: DesignerMVC.View.SqlEditor.getValue(),
+                dataRange: $('#report-dataRange').val(),
+                queryParams: DesignerMVC.Util.getQueryParams()
+            }, function (result) {
+                $.messager.progress("close");
+                if (result.success) {
+                    $('#report-preview-sql-dlg').dialog('open');
+                    $('#report-preview-sql-dlg .CodeMirror').css("height", "99%");
+                    return DesignerMVC.View.PreviewSqlEditor.setValue(result.data);
+                }
+                return $.messager.alert('错误', result.msg);
+            }, 'json');
+        },
+        save: function () {
+            if (!DesignerMVC.Util.checkBasicConfParam()) return;
+
+            var rows = $("#report-meta-column-grid").datagrid('getRows');
+            if (rows == null || rows.length == 0) {
+                return $.messager.alert('失败', "没有任何报表SQL配置列选项！", 'error');
+            }
+
+            var metaColumns = DesignerMVC.Util.getMetaColumns(rows);
+            var columnTypeMap = DesignerMVC.Util.getColumnTypeMap(metaColumns);
+            if (columnTypeMap.layout == 0 || columnTypeMap.stat == 0) {
+                return $.messager.alert('失败', "您没有设置布局列或者统计列", 'error');
+            }
+
+            var emptyExprColumns = DesignerMVC.Util.getEmptyExprColumns(metaColumns);
+            if (emptyExprColumns && emptyExprColumns.length) {
+                return $.messager.alert('失败', "计算列：[" + emptyExprColumns.join() + "]没有设置表达式！", 'error');
+            }
+
+            $.messager.progress({
+                title: '请稍后...',
+                text: '正在处理中...',
+            });
+
+            $('#report-queryParams').val(DesignerMVC.Util.getQueryParams());
+
+            var action = $('#modal-action').val();
+            var actUrl = action === "edit" ? DesignerMVC.URLs.edit.url : DesignerMVC.URLs.add.url;
+            var data = $('#report-basic-conf-form').serializeObject();
+            data.isChange = $('#report-sqlTextIsChange').val() != 0;
+            data.sqlText = DesignerMVC.View.SqlEditor.getValue();
+            data["options"] = JSON.stringify({
+                layout: data.layout,
+                statColumnLayout: data.statColumnLayout,
+                dataRange: data.dataRange
+            });
+            data["metaColumns"] = JSON.stringify(metaColumns);
+
+            $.post(actUrl, data, function (result) {
+                $.messager.progress("close");
+                if (result.success) {
+                    $('#report-sqlTextIsChange').val('0');
+                    var id = $("#report-categoryId").val();
+                    return $.messager.alert('操作提示', "操作成功", 'info', function () {
+                        $('#report-designer-dlg').dialog('close');
+                        DesignerMVC.Controller.listReports(id);
+                    });
+                }
+                $.messager.alert('操作提示', result.msg, 'error');
+            }, 'json');
+        },
+        reload: function () {
+            EasyUIUtils.reloadDatagrid('#report-datagrid');
+        },
+        saveChanged: function (data, handler) {
+            var isChanged = $("#report-sqlTextIsChange").val() != 0;
+            if (!isChanged) {
+                return handler(data);
+            }
+            $.messager.confirm('确认', '是否保存修改的数据?', function (r) {
+                if (r) {
+                    //MetaDataDesigner.save();
+                }
+                //handler(data);
+            });
+        },
+        deleteQueryParam: function (index) {
+            $("#report-query-param-grid").datagrid('deleteRow', index);
+            $("#report-query-param-grid").datagrid('reload', $("#report-query-param-grid").datagrid('getRows'));
+        },
+        addOrEditQueryParam: function (act) {
+            if ($("#report-query-param-form").form('validate')) {
+                var row = $('#report-query-param-form').serializeObject()
+                if (row.dataSource != "none" && $.trim(row.content).length == 0) {
+                    $("#report-query-param-content").focus();
+                    return $.messager.alert('提示', "内容不能为空", 'error');
+                }
+
+                row.required = $("#report-query-param-required").prop("checked");
+                row.autoComplete = $("#report-query-param-required").prop("checked");
+
+                if (act == "add") {
+                    $('#report-query-param-grid').datagrid('appendRow', row);
+                } else if (act == "edit") {
+                    var index = $("#report-query-param-gridIndex").val();
+                    $('#report-query-param-grid').datagrid('updateRow', {
+                        index: index,
+                        row: row
+                    });
+                }
+                $('#report-query-param-form').form('reset');
+            }
+        },
+        showMetaColumnOption: function (index, name) {
+            $("#report-meta-column-grid").datagrid('selectRow', index);
+            var row = $("#report-meta-column-grid").datagrid('getSelected');
+            if (name == "expression") {
+                $('#report-column-expression-dlg').dialog('open');
+                return $("#report-column-expression").val(row.expression);
+            }
+            if (name == "comment") {
+                $('#report-column-comment-dlg').dialog('open');
+                return $("#report-column-comment").val(row.comment);
+            }
+        },
+        saveMetaColumnOption: function (name) {
+            var row = $("#report-meta-column-grid").datagrid('getSelected');
+            if (name == "expression") {
+                row.expression = $("#report-column-expression").val();
+                return $('#report-column-expression-dlg').dialog('close');
+            }
+            if (name == "comment") {
+                row.comment = $("#report-column-comment").val();
+                return $('#report-column-comment-dlg').dialog('close');
+            }
         },
         listReports: function (id) {
-            var gridUrl = ReportMVC.URLs.list.url + '?id=' + id;
+            var gridUrl = DesignerMVC.URLs.list.url + '?id=' + id;
             EasyUIUtils.loadDataWithUrl('#report-datagrid', gridUrl);
-        },
-        loadParams: function (params) {
-            EasyUIUtils.clearDatagrid('#report-sql-column-grid');
-            if ((params || '').length > 0) {
-                $("#report-sql-column-grid").datagrid('loadData', eval(params));
-            }
-        },
-        getParams: function () {
-            var rows = $("#report-sql-column-grid").datagrid('getRows');
-            for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-                var row = rows[rowIndex];
-                row["name"] = $("#name" + rowIndex).val();
-                row["cnName"] = $("#cnName" + rowIndex).val();
-                row["required"] = $("#required" + rowIndex).val();
-                row["dataType"] = $("#dataType" + rowIndex).val();
-                row["defaultValue"] = $("#defaultValue" + rowIndex).val();
-                row["comment"] = $("#comment" + rowIndex).val();
-            }
-            return rows;
-        },
-        fullscreenEdit: function () {
-            ReportMVC.View.SqlEditor.setOption("fullScreen", !ReportMVC.View.SqlEditor.getOption("fullScreen"));
         }
     },
     Util: {
@@ -902,13 +1188,64 @@ var ReportMVC = {
                 gridId: null,
             };
         },
-        clearSqlEditor: function () {
-            ReportMVC.View.SqlEditor.setValue('');
-            ReportMVC.View.SqlEditor.refresh();
+        checkSelected: function (func) {
+            var row = $('#report-datagrid').datagrid('getSelected');
+            if (row) {
+                func(row);
+            } else {
+                $.messager.alert('警告', '请选中一条记录!', 'info');
+            }
         },
-        resizeSqlEditor: function () {
-            var width = $('#report-designer-dlg').panel('options').width - 180;
-            $('#report-sqlText-td>.CodeMirror').css({"width": width});
+        editOrCopy: function (options, act) {
+            DesignerMVC.Util.clearSqlEditor();
+            EasyUIUtils.openEditDlg(options);
+
+            var row = options.data;
+            if (act === 'copy') {
+                row.name = '';
+            }
+            DesignerMVC.Util.fillReportBasicConfForm(row, $.toJSON(row.options));
+            DesignerMVC.View.SqlEditor.setValue(row.sqlText || "");
+            DesignerMVC.Util.loadMetaColumns($.toJSON(row.metaColumns));
+            DesignerMVC.Util.loadQueryParams($.toJSON(row.queryParams));
+        },
+        clearSqlEditor: function () {
+            DesignerMVC.View.SqlEditor.setValue('');
+            DesignerMVC.View.SqlEditor.refresh();
+
+            DesignerMVC.View.PreviewSqlEditor.setValue('');
+            DesignerMVC.View.PreviewSqlEditor.refresh();
+
+            DesignerMVC.View.HistorySqlEditor.setValue('');
+            DesignerMVC.View.HistorySqlEditor.refresh();
+        },
+        resizeDesignerDlgElments: function () {
+            var panelOptions = $('#report-designer-dlg').panel('options');
+            $('#report-sqlText-td>.CodeMirror').css({"width": panelOptions.width - 230});
+
+            var tabHeight = panelOptions.height - 160;
+            var confFormDivHeight = $('#report-basic-conf-form-div').height();
+            var metaColumnDivHeight = (tabHeight - confFormDivHeight);
+            if (metaColumnDivHeight <= 180) metaColumnDivHeight = 180;
+            $('#report-meta-column-div').css({
+                "height": metaColumnDivHeight
+            });
+
+            var queryParamFormDivHeight = $('#report-query-param-form-div').height();
+            var queryParamDivHeight = (tabHeight - queryParamFormDivHeight - 200);
+            if (queryParamDivHeight <= 180) queryParamDivHeight = 180;
+            $('#report-query-param-div').css({
+                "height": queryParamDivHeight
+            });
+        },
+        fullscreenEdit: function () {
+            DesignerMVC.View.SqlEditor.setOption("fullScreen", !DesignerMVC.View.SqlEditor.getOption("fullScreen"));
+        },
+        fillReportBasicConfForm: function (row, options) {
+            $('#report-basic-conf-form').form('load', row);
+            $('#report-basic-conf-form').form('load', options);
+            $('#report-category-name').text(row.categoryName);
+            $('#report-categoryId').text(row.categoryId);
         },
         showReportProps: function (data) {
             $('#report-detail-dlg label').each(function (i) {
@@ -917,24 +1254,22 @@ var ReportMVC = {
 
             for (var name in data) {
                 var id = "#report-detail-" + name;
-                var value = ReportMVC.Util.getPropertyValue(name, data);
+                var value = DesignerMVC.Util.getPropertyValue(name, data);
+                $(id).text(value);
+            }
+
+            var options = $.toJSON(data.options);
+            for (var name in options) {
+                var id = "#report-detail-" + name;
+                var value = DesignerMVC.Util.getPropertyValue(name, options);
                 $(id).text(value);
             }
         },
-        eachSqlColumnRows: function (rows) {
-            if (rows && rows.length) {
-                for (var i = 0; i < rows.length; i++) {
-                    var row = rows[i];
-                    row.type = ReportMVC.Util.getColumnTypeValue(row.type);
-                    row.sortType = ReportMVC.Util.getColumnSortTypeValue(row.sortType);
-                }
-            }
-            return rows;
-        },
         getPropertyValue: function (name, object) {
             var value = object[name];
-            if (name == "layout") {
-                return ReportMVC.Util.getLayoutName(value);
+            if (name == "layout" ||
+                name == "statColumnLayout") {
+                return DesignerMVC.Util.getLayoutName(value);
             }
             if (name == "status") {
                 return value == 1 ? "启用" : "禁用";
@@ -982,6 +1317,143 @@ var ReportMVC = {
                 return 4;
             }
             return 0;
+        },
+        checkBasicConfParam: function () {
+            if (DesignerMVC.View.SqlEditor.getValue() == "") {
+                $.messager.alert('失败', "未发现操作的SQL语句！", 'error');
+                return false;
+            }
+            return $('#report-basic-conf-form').form('validate');
+        },
+        loadMetaColumns: function (newColumns) {
+            var oldColumns = $("#report-meta-column-grid").datagrid('getRows');
+            //如果列表中没有元数据列则直接设置成新的元数据列
+            if (oldColumns == null || oldColumns.length == 0) {
+                return $("#report-meta-column-grid").datagrid('loadData', newColumns);
+            }
+
+            //如果列表中存在旧的列则需要替换相同的列并增加新列
+            oldColumns = DesignerMVC.Util.getMetaColumns(oldColumns);
+            var oldRowMap = {};
+            for (var i = 0; i < oldColumns.length; i++) {
+                var name = oldColumns[i].name;
+                oldRowMap[name] = oldColumns[i];
+            }
+
+            for (var i = 0; i < newColumns.length; i++) {
+                var name = newColumns[i].name;
+                if (oldRowMap[name]) {
+                    oldRowMap[name].dataType = newColumns[i].dataType;
+                    oldRowMap[name].width = newColumns[i].width;
+                    newColumns[i] = oldRowMap[name];
+                }
+            }
+
+            $.each(oldColumns, function (i, column) {
+                if (column.type == 4) {
+                    newColumns.push(column);
+                }
+            });
+            return $("#report-meta-column-grid").datagrid('loadData', newColumns);
+        },
+        getMetaColumns: function (columns) {
+            for (var rowIndex = 0; rowIndex < columns.length; rowIndex++) {
+                var column = columns[rowIndex];
+                var subOptions = DesignerMVC.Util.getCheckboxOptions(column.type);
+                for (var optIndex = 0; optIndex < subOptions.length; optIndex++) {
+                    var option = subOptions[optIndex];
+                    var optionId = "#" + option.name + rowIndex;
+                    column[option.name] = $(optionId).prop("checked");
+                }
+                column["name"] = $("#name" + rowIndex).val();
+                column["text"] = $("#text" + rowIndex).val();
+                column["type"] = $("#type" + rowIndex).val();
+                column["sortType"] = $("#sortType" + rowIndex).val();
+                column["decimals"] = $("#decimals" + rowIndex).val();
+            }
+            return columns;
+        },
+        eachMetaColumns: function (columns) {
+            if (columns && columns.length) {
+                for (var i = 0; i < columns.length; i++) {
+                    var column = columns[i];
+                    column.type = DesignerMVC.Util.getColumnTypeValue(column.type);
+                    column.sortType = DesignerMVC.Util.getColumnSortTypeValue(column.sortType);
+                }
+            }
+            return columns;
+        },
+        getCheckboxOptions: function (type) {
+            var subOptions = [];
+            if (type == 4) {
+                subOptions = $.grep(DesignerMVC.Model.MetaColumnOptions, function (option, i) {
+                    return option.type == 1;
+                });
+            } else if (type == 3) {
+                subOptions = $.grep(DesignerMVC.Model.MetaColumnOptions, function (option, i) {
+                    return option.type == 1 || option.type == 2;
+                });
+            } else {
+                subOptions = $.grep(DesignerMVC.Model.MetaColumnOptions, function (option, i) {
+                    return option.type == 3;
+                });
+            }
+            return subOptions;
+        },
+        getEmptyExprColumns: function (columns) {
+            var emptyColumns = [];
+            for (var i = 0; i < columns.length; i++) {
+                var column = columns[i];
+                if (column.type == 4 && $.trim(column.expression) == "") {
+                    emptyColumns.push(column.name);
+                }
+            }
+            return emptyColumns;
+        },
+        getColumnTypeMap: function (rows) {
+            var typeMap = {
+                "layout": 0,
+                "dim": 0,
+                "stat": 0,
+                "computed": 0
+            };
+            for (var i = 0; i < rows.length; i++) {
+                if (rows[i].type == 1) {
+                    typeMap.layout += 1;
+                } else if (rows[i].type == 2) {
+                    typeMap.dim += 1;
+                } else if (rows[i].type == 3) {
+                    typeMap.stat += 1;
+                } else if (rows[i].type == 4) {
+                    typeMap.computed += 1;
+                }
+            }
+            return typeMap;
+        },
+        loadQueryParams: function (params) {
+            EasyUIUtils.clearDatagrid('#report-query-param-grid');
+            var jsonText = JSON.stringify(params);
+            if (params instanceof Array) {
+                $("#report-query-param-grid").datagrid('loadData', params);
+            } else {
+                jsonText = "";
+            }
+            $("#report-query-param-json").val(jsonText);
+        },
+        getQueryParams: function () {
+            var rows = $("#report-query-param-grid").datagrid('getRows');
+            return rows ? JSON.stringify(rows) : "";
+        }
+    },
+    Data: {
+        loadDataSourceList: function () {
+            $.getJSON(DesignerMVC.URLs.DataSource.listAll.url, function (result) {
+                if (!result.success) {
+                    console.info(result.msg);
+                }
+                DesignerMVC.Model.DataSourceList = result.data;
+                EasyUIUtils.fillCombox("#report-dsId", "add", result.data, "");
+            });
         }
     }
 };

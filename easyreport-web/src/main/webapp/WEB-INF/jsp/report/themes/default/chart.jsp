@@ -5,12 +5,10 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <title>${name}-报表展示图</title>
-    <%@ include file="/WEB-INF/jsp-views/includes/header.jsp" %>
-    <%@ include file="/WEB-INF/jsp-views/includes/form_scripts.jsp" %>
-    <script src="<%=request.getContextPath()%>/assets/js/plugins/echarts/esl.js"></script>
-    <script src="<%=request.getContextPath()%>/assets/js/plugins/echarts/echarts.js"></script>
-    <script src="<%=request.getContextPath()%>/assets/modules/report/js/common.js"></script>
-    <script src="<%=request.getContextPath()%>/assets/modules/report/js/chart.js?v=<%=Math.random()%>"></script>
+    <%@ include file="/WEB-INF/jsp/includes/common.jsp" %>
+    <%@ include file="/WEB-INF/jsp/includes/header.jsp" %>
+    <script src="${ctxPath}/assets/vendor/echarts.min.js?v=${version}"></script>
+    <script src="${ctxPath}/assets/js/report/themes/default/chart.js?v=${version}"></script>
 </head>
 <body>
 <div id="loading"
@@ -24,7 +22,7 @@
             <table>
                 <tr>
                     <td valign="top"><img alt="loading" border="0"
-                                          src="<%=request.getContextPath()%>/assets/modules/report/icons/loading.gif"/>
+                                          src="${ctxPath}/assets/modules/report/icons/loading.gif"/>
                     </td>
                     <td valign="middle" style="font-size: 14px;" id="loadingText">图表正在生成中, 请稍等...</td>
                 </tr>
