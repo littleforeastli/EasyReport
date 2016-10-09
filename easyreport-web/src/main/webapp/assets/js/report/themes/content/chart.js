@@ -48,13 +48,15 @@ var ChartReportMVC = {
             $.ajax({
                 type: "POST",
                 url: ChartReportMVC.URLs.getData.url,
-                data: $("#chart-report-form").serializeObject(),
+                data: $("#chart-report-form").serialize(),
                 dataType: "json",
                 beforeSend: function () {
-                    $.messager.progress({
-                        title: '请稍后...',
-                        text: '报表正在生成中...',
-                    });
+                    if (e) {
+                        $.messager.progress({
+                            title: '请稍后...',
+                            text: '报表正在生成中...',
+                        });
+                    }
                 },
                 success: function (result) {
                     if (result.success) {
@@ -63,14 +65,18 @@ var ChartReportMVC = {
                         ChartReportMVC.Controller.clear();
                         ChartReportMVC.Util.setDimDefaultValue();
                         if (ChartReportMVC.Util.checkStatColumn()) {
-                            ChartReportMVC.Controller.show("chart1");
+                            ChartReportMVC.Controller.show("legend1");
                         }
                     } else {
-                        $.messager.alert('操作提示', result.data.msg, 'error');
+                        if (e) {
+                            $.messager.alert('操作提示', result.data.msg, 'error');
+                        }
                     }
                 },
                 complete: function () {
-                    //$.messager.progress("close");
+                    if (e) {
+                        $.messager.progress("close");
+                    }
                 }
             });
         },
@@ -118,20 +124,20 @@ var ChartReportMVC = {
         },
         viewChart: function (e) {
             if (ChartReportMVC.Model.metaData && ChartReportMVC.Util.checkStatColumn()) {
-                ChartReportMVC.Controller.show('chart1');
+                ChartReportMVC.Controller.show('legend1');
             }
         },
         addChart: function (e) {
             if (ChartReportMVC.Model.metaData && ChartReportMVC.Util.checkStatColumn()) {
-                var count = $("div[id*='chart']").size() + 1;
-                var id = 'chart' + count;
-                $("#chart1").after("<div id=\"" + id + "\" style=\"height: 345px; border: 1px solid #ccc;\"></div>");
+                var count = $("div[id*='legend']").size() + 1;
+                var id = 'legend' + count;
+                $("#legend1").after("<div id=\"" + id + "\" style=\"height: 345px; border: 1px solid #ccc;\"></div>");
                 ChartReportMVC.Controller.show(id);
             }
         },
         clear: function () {
-            $("div[id*='chart']").each(function () {
-                if ($(this).attr("id") != "chart1") {
+            $("div[id*='legend']").each(function () {
+                if ($(this).attr("id") != "legend1") {
                     $(this).remove();
                 }
             });
@@ -139,17 +145,17 @@ var ChartReportMVC = {
         resetChart: function (e) {
             if (ChartReportMVC.Model.metaData) {
                 ChartReportMVC.Util.setDimDefaultValue();
-                $("div[id*='chart']").each(function () {
-                    if ($(this).attr("id") != "chart1") {
+                $("div[id*='legend']").each(function () {
+                    if ($(this).attr("id") != "legend1") {
                         $(this).remove();
                     }
                 });
-                ChartReportMVC.Controller.show('chart1');
+                ChartReportMVC.Controller.show('legend1');
             }
         },
         toggleChart: function (e) {
             if (ChartReportMVC.Model.metaData) {
-                $("div[id*='chart']").each(function () {
+                $("div[id*='legend']").each(function () {
                     var dom = document.getElementById($(this).attr("id"));
                     var currChart = require('echarts').init(dom);
                     var xAxis = currChart.getOption().xAxis;
@@ -270,7 +276,7 @@ var ChartReportMVC = {
             var canSelectAllDimCount = ChartReportMVC.Util.getCanSelectAllDimCount();
             var count = 0;
             for (var i = 0; i < dimColumns.length; i++) {
-                id = "#dim_" + dimColumns[i].name;
+                var id = "#dim_" + dimColumns[i].name;
                 var value = $(id).combobox('getValue');
                 if (value == "all") {
                     count++;
